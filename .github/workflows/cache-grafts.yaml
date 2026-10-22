@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rev: [nixos-unstable, nixos-25.05]
+        rev: [nixos-unstable, nixos-26.05]
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
