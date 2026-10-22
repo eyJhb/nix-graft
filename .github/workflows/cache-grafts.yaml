@@ -1,0 +1,22 @@
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rev: [nixos-unstable, nixos-25.05]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v17
+        with:
+          name: nix-graft
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - run: ./scripts/build-graft.sh ${{ matrix.rev }}
