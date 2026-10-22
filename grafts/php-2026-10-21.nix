@@ -1,4 +1,3 @@
-# grafts/php-2026-10-22.nix
 # PHP 8.2.35, 8.3.36, 8.4.27 and 8.5.12 security releases:
 #   CVE-2026-109618  GHSA-w8hw-w9fx-j79w  Core: state corruption via bailout
 #   CVE-2026-109619  GHSA-6wmf-4rv5-p3rp  Core: state corruption via bailout
