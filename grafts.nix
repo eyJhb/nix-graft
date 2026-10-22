@@ -24,15 +24,15 @@ let
   load =
     file:
     let
-      id = lib.removeSuffix ".nix" file;
+      name = lib.removeSuffix ".nix" file;
       grafts = lib.toList (import (./grafts + "/${file}") { inherit pkgs lib nixpkgsAt; });
     in
     map (
       graft:
       assert lib.assertMsg (
         graft ? reason && graft ? applies && graft ? old && graft ? new
-      ) "graft ${id}: needs reason, applies, old and new";
-      { inherit id; } // graft
+      ) "graft ${name}: needs reason, applies, old and new";
+      { id = name; } // graft // { file = name; }
     ) grafts;
 in
 lib.concatMap load files
