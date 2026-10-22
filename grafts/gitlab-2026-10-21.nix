@@ -31,9 +31,11 @@ in
     "CVE-2026-112326"
     "CVE-2026-103515"
   ];
-  # applies = lib.versionOlder pkgs.gitlab.version version;
   applies =
-    lib.versionAtLeast pkgs.gitlab.version minVersion && lib.versionOlder pkgs.gitlab.version version;
+    let
+      gitlabVersion = lib.getVersion pkgs.gitlab;
+    in
+    lib.versionAtLeast gitlabVersion minVersion && lib.versionOlder gitlabVersion version;
   old = pkgs.gitlab;
   new = updated.gitlab;
   also = [
