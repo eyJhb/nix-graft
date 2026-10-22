@@ -14,6 +14,12 @@ in
       default = true;
     };
 
+    includeReport = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Place grafts report at /etc/grafts.txt";
+    };
+
     exclude = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
@@ -25,13 +31,19 @@ in
   config = lib.mkIf cfg.enable {
     system.replaceDependencies.replacements = nixGrafts.replacements pkgs cfg.exclude;
 
-    # Don't graft the package manager itself.
+    # do not graft package manager itself, as it might cause issues
     system.replaceDependencies.cutoffPackages = [ config.nix.package ];
 
-    environment.etc."grafts.txt".text = nixGrafts.report pkgs cfg.exclude;
-
-    warnings = map (id: "grafts.exclude: there is no graft with id ${id}") (
-      lib.filter (id: !(builtins.elem id (map (g: g.id) (nixGrafts.grafts pkgs)))) cfg.exclude
+    environment.etc."grafts.txt".text = lib.optionalString cfg.includeReport (
+      nixGrafts.report pkgs cfg.exclude
     );
+
+    # warn if they are excluding grafts that does not exists
+    warnings =
+      let
+        knownIds = map (g: g.id) (nixGrafts.grafts pkgs);
+        unknownIds = lib.subtractLists knownIds cfg.exclude;
+      in
+      map (id: "grafts.exclude: there is no graft with id ${id}") unknownIds;
   };
 }

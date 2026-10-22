@@ -2,7 +2,8 @@ pkgs:
 let
   inherit (pkgs) lib;
 
-  # Another nixpkgs revision, for the same system and with the same config.
+  # Helper function to get another nixpkgs revision, for the same
+  # system and with the same config. Might be moved in the future.
   nixpkgsAt =
     rev: sha256:
     import
@@ -15,24 +16,26 @@ let
         inherit (pkgs) config;
       };
 
+  # read all grafts from filesystem
   files = lib.attrNames (
     lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nix" name) (
       builtins.readDir ./grafts
     )
   );
 
+  # load/validate all grafts
   load =
     file:
     let
       name = lib.removeSuffix ".nix" file;
       grafts = lib.toList (import (./grafts + "/${file}") { inherit pkgs lib nixpkgsAt; });
+      validated =
+        graft:
+        assert lib.assertMsg (
+          graft ? reason && graft ? applies && graft ? old && graft ? new
+        ) "graft ${name}: needs reason, applies, old and new";
+        graft;
     in
-    map (
-      graft:
-      assert lib.assertMsg (
-        graft ? reason && graft ? applies && graft ? old && graft ? new
-      ) "graft ${name}: needs reason, applies, old and new";
-      { id = name; } // graft // { file = name; }
-    ) grafts;
+    map (graft: { id = name; } // (validated graft) // { file = name; }) grafts;
 in
 lib.concatMap load files

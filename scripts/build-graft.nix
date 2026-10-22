@@ -13,8 +13,12 @@ let
   chosen = lib.filter (g: wanted == [ ] || lib.elem g.id wanted || lib.elem g.file wanted) (
     (import ../.).grafts pkgs
   );
+
   applying = lib.filter (
-    g: g.applies || lib.warn "${g.id} does not apply to this revision, skipping" false
+    g:
+    lib.warnIf ((g.warning or "") != "") "${g.id}: ${g.warning}" (
+      g.applies || lib.warn "${g.id} does not apply to this revision, skipping" false
+    )
   ) chosen;
 in
 assert lib.assertMsg (chosen != [ ]) "no graft matches: ${grafts}";

@@ -7,6 +7,7 @@ rec {
     pkgs: exclude: builtins.filter (g: g.applies && !(builtins.elem g.id exclude)) (grafts pkgs);
 
   # Replacement pairs of the active grafts, including `also`.
+  # Warns about every graft with a warning, even ones that don't apply.
   replacements =
     pkgs: exclude:
     let
@@ -23,43 +24,38 @@ rec {
           }) (lib.filter (o: r.new ? ${o}) r.old.outputs)
         else
           [ r ];
+
+      warnings = map (g: "graft ${g.id}: ${g.warning}") (
+        builtins.filter (g: (g.warning or "") != "" && !(builtins.elem g.id exclude)) (grafts pkgs)
+      );
     in
-    builtins.concatMap (
+    lib.foldr lib.warn (builtins.concatMap (
       g:
       map (r: {
         oldDependency = r.old;
         newDependency = r.new;
       }) (builtins.concatMap allOutputs ([ { inherit (g) old new; } ] ++ (g.also or [ ])))
-    ) (active pkgs exclude);
-
-  # Warnings of grafts whose package is one of the given packages.
-  warningsFor =
-    pkgs: drvs:
-    map (g: "graft ${g.id}: ${g.warning}") (
-      builtins.filter (
-        g: (g.warning or "") != "" && builtins.elem g.old.outPath (map (d: d.outPath) drvs)
-      ) (grafts pkgs)
-    );
+    ) (active pkgs exclude)) warnings;
 
   # Graft one package: apply pkgs pkgs.curl
   apply =
     pkgs: drv:
-    pkgs.lib.foldr pkgs.lib.warn (pkgs.replaceDependencies {
+    pkgs.replaceDependencies {
       inherit drv;
       replacements = replacements pkgs [ ];
       # don't warn about grafts that don't concern this package
       verbose = false;
-    }) (warningsFor pkgs [ drv ]);
+    };
 
   # Graft several packages in one pass: env pkgs [ pkgs.curl pkgs.php84 ]
   env =
     pkgs: paths:
-    pkgs.lib.foldr pkgs.lib.warn (apply pkgs (
+    apply pkgs (
       pkgs.buildEnv {
         name = "grafted";
         inherit paths;
       }
-    )) (warningsFor pkgs paths);
+    );
 
   # Your pkgs, with every top-level package grafted on use: (packages pkgs).curl
   packages =
@@ -77,7 +73,7 @@ rec {
       used = active pkgs exclude;
       excluded = builtins.filter (g: g.applies && builtins.elem g.id exclude) all;
       fixed = builtins.filter (g: !g.applies) all;
-      warned = builtins.filter (g: (g.warning or "") != "") all;
+      warned = builtins.filter (g: (g.warning or "") != "" && !(builtins.elem g.id exclude)) all;
 
       change =
         g:
