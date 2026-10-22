@@ -14,6 +14,7 @@
 }:
 let
   version = "19.4.3";
+  minVersion = "19.0.0";
 
   # nixpkgs commit "gitlab: 19.4.2 -> 19.4.3"
   updated = nixpkgsAt "5cd4e1c09c37aba4c5611178ac5f6f7f9dfb6750" "sha256-XxVJSBA1Ac5wj4PK/SVUbortIfQ7wlSriTgkLqTxtl0=";
@@ -30,7 +31,9 @@ in
     "CVE-2026-112326"
     "CVE-2026-103515"
   ];
-  applies = lib.versionOlder pkgs.gitlab.version version;
+  # applies = lib.versionOlder pkgs.gitlab.version version;
+  applies =
+    lib.versionAtLeast pkgs.gitlab.version minVersion && lib.versionOlder pkgs.gitlab.version version;
   old = pkgs.gitlab;
   new = updated.gitlab;
   also = [
